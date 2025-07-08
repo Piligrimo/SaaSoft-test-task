@@ -1,9 +1,9 @@
 <template>
   <div>
-    <v-container class="fill-height container" max-width="900">
+    <v-container class="container fill-height" max-width="900">
       <h1 class="text-h4 font-weight-bold my-4">
         <span class="mr-4">Учетные записи</span>
-        <v-btn icon="mdi-plus" rounded="lg" variant="outlined" @click="addAccount" />
+        <v-btn icon="mdi-plus" rounded="lg" variant="outlined" @click="store.addAccount" />
       </h1>
 
       <v-row>
@@ -27,21 +27,43 @@
         </v-col>
       </v-row>
       <template v-else>
-        <v-row v-for="(account, i) in accounts" :key="i">
+        <v-row v-for="account in accounts" :key="account.id">
           <v-col cols="3">
-            <v-text-field v-model="account.tags" label="Метки" />
+            <v-text-field
+              density="compact"
+              label="Метки"
+              :model-value="store.getTagsAsString(account.id)"
+              @update:model-value="store.setTagsField(account.id, $event)"
+            />
           </v-col>
           <v-col cols="2">
-            <v-select v-model="account.type" :items="types" label="Тип записи" />
+            <v-select
+              density="compact"
+              :items="types"
+              label="Тип записи"
+              :model-value="account.type"
+              @update:model-value="store.setField(account.id, 'type', $event)"
+            />
           </v-col>
           <v-col :cols="account.type === 'local' ? 3 : 6">
-            <v-text-field v-model="account.login" label="Логин" />
+            <v-text-field
+              density="compact"
+              label="Логин"
+              :model-value="account.login"
+              @update:model-value="store.setField(account.id, 'login', $event)"
+            />
           </v-col>
           <v-col v-if="account.type === 'local'" cols="3">
-            <v-text-field v-model="account.password" label="Пароль" />
+            <v-text-field
+              density="compact"
+              label="Пароль"
+              :model-value="account.password"
+              type="password"
+              @update:model-value="store.setField(account.id, 'password', $event)"
+            />
           </v-col>
           <v-col cols="1">
-            <v-btn icon="mdi-trash-can" rounded="lg" variant="plain" @click="addAccount" />
+            <v-btn icon="mdi-trash-can" rounded="lg" variant="plain" @click="store.deleteAccount(account.id)" />
           </v-col>
         </v-row>
       </template>
@@ -50,12 +72,9 @@
 </template>
 
 <script setup lang="ts">
-  interface Account {
-    login: string
-    tags: string
-    type: 'local' | 'ldap'
-    password: string
-  }
+  import { useAppStore } from '@/stores/app'
+
+  const store = useAppStore()
 
   const types = [
     {
@@ -68,20 +87,11 @@
     },
   ]
 
-  const accounts = ref<Account[]>([])
-
-  const addAccount = () => {
-    accounts.value.push({
-      login: '',
-      tags: '',
-      type: 'local',
-      password: '',
-    })
-  }
+  const accounts = computed(() => store.accounts)
 </script>
 
 <style scoped>
   .container {
-    display: block;
+    display: block !important;
   }
 </style>
