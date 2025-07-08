@@ -76,6 +76,14 @@
 
   const store = useAppStore()
 
+  store.init()
+
+  addEventListener('unload', () => {
+    console.log('ssssss')
+
+    store.saveToLS()
+  })
+
   const types = [
     {
       title: 'Локальная',

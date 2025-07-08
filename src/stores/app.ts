@@ -18,6 +18,22 @@ export const useAppStore = defineStore('app', {
     lastId: 0,
   }),
   actions: {
+    init () {
+      const savesAccounts = localStorage.getItem('accounts')
+      const lastId = Number(localStorage.getItem('lastId')) || 0
+      try {
+        if (savesAccounts) {
+          this.accounts = JSON.parse(savesAccounts)
+          this.lastId = lastId
+        }
+      } catch {
+        console.error('Ошибка! Учетные записи сохраненные локально имеют направильный формат!')
+      }
+    },
+    saveToLS () {
+      localStorage.setItem('accounts', JSON.stringify(this.accounts))
+      localStorage.setItem('lastId', this.lastId.toString())
+    },
     addAccount () {
       this.accounts.push({
         id: this.lastId,
