@@ -116,7 +116,10 @@
     max50: createMaxRule(50),
   }
 
-  addEventListener('unload', () => {
+  addEventListener('beforeunload', async event => {
+    if (accounts.value.length > store.accounts.length && !confirm()) {
+      event.preventDefault()
+    }
     store.saveToLS()
   })
 
