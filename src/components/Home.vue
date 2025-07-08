@@ -31,7 +31,6 @@
           <v-form
             :ref="(el) => formRefs[account.id] = el"
             class="form"
-            @update:model-value="saveIfValid(account, $event)"
           >
             <v-col cols="3">
               <v-text-field
@@ -40,16 +39,18 @@
                 :model-value="getTagsAsString(account.tags)"
                 :rules="[rules.max50]"
                 validate-on="blur"
-                @update:model-value="setTagsField(account.id, $event)"
+                @blur="saveIfValid(account)"
+                @update:model-value="setTagsField(account, $event)"
               />
             </v-col>
             <v-col cols="2">
               <v-select
+                v-model="account.type"
                 density="compact"
                 :items="types"
                 label="Тип записи"
-                :model-value="account.type"
-                @update:model-value="setField(account.id, 'type', $event)"
+                validate-on="input"
+                @update:model-value="saveIfValid(account)"
               />
             </v-col>
             <v-col :cols="account.type === 'local' ? 3 : 6">
@@ -59,17 +60,18 @@
                 label="Логин"
                 :rules="[rules.required, rules.max100]"
                 validate-on="blur"
+                @blur="saveIfValid(account)"
               />
             </v-col>
             <v-col v-if="account.type === 'local'" cols="3">
               <v-text-field
+                v-model="account.password"
                 density="compact"
                 label="Пароль"
-                :model-value="account.password"
                 :rules="[rules.required, rules.max100]"
                 type="password"
                 validate-on="blur"
-                @update:model-value="setField(account.id, 'password', $event)"
+                @blur="saveIfValid(account)"
               />
             </v-col>
             <v-col cols="1">
@@ -87,10 +89,11 @@
 
   const store = useAppStore()
 
-  const formRefs = reactive<Record<number, any>>({})
   store.init()
 
-  const accounts = ref([...store.accounts])
+  const accounts = ref<Account[]>(structuredClone(toRaw(store.accounts)))
+
+  const formRefs = ref<Record<number, any>>({})
 
   const addAccount = () => {
     accounts.value.push({
@@ -131,22 +134,19 @@
   const getTagsAsString = (tags: Tag[]) =>
     tags.map(({ text }) => text).join(';')
 
-  const setTagsField = (id: number, value: string) => {
+  const setTagsField = (account: Account, value: string) => {
     const tags: Tag[] = value.split(';').map(text => ({ text }))
-    setField(id, 'tags', tags)
+    account.tags = tags
   }
 
-  const setField = <K extends keyof Account>(id: number, field: K, value: Account[K]) => {
-    const account = accounts.value.find(account => account.id === id)
-    if (!account) return
-    account[field] = value
-  }
+  const saveIfValid = async (account: Account) => {
+    setTimeout(() => {
+      const isValid = formRefs.value[account.id].isValid
 
-  const saveIfValid = (account: Account, isValid: boolean | null) => {
-    console.log('saveIfValid', { isValid })
-    if (isValid) {
-      store.saveAccount(account)
-    }
+      if (isValid) {
+        store.saveAccount(account)
+      }
+    })
   }
 
   const deleteAccount = (id: number) => {

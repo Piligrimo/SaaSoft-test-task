@@ -38,13 +38,11 @@ export const useAppStore = defineStore('app', () => {
     lastId.value++
   }
   const saveAccount = (data: Account) => {
-    console.log(data)
-
     const existingAccountIndex = accounts.value.findIndex(account => account.id === data.id)
     if (existingAccountIndex === -1) {
-      accounts.value.push(data)
+      accounts.value.push({ ...data })
     } else {
-      accounts.value[existingAccountIndex] = data
+      accounts.value[existingAccountIndex] = { ...data }
     }
   }
 
