@@ -117,7 +117,7 @@
   }
 
   addEventListener('beforeunload', async event => {
-    if (accounts.value.length > store.accounts.length && !confirm()) {
+    if (accounts.value.length > store.accounts.length) {
       event.preventDefault()
     }
     store.saveToLS()
