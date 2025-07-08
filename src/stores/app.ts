@@ -12,59 +12,45 @@ export interface Account {
   password: string
 }
 
-export const useAppStore = defineStore('app', {
-  state: () => ({
-    accounts: [] as Account[],
-    lastId: 0,
-  }),
-  actions: {
-    init () {
-      const savesAccounts = localStorage.getItem('accounts')
-      const lastId = Number(localStorage.getItem('lastId')) || 0
-      try {
-        if (savesAccounts) {
-          this.accounts = JSON.parse(savesAccounts)
-          this.lastId = lastId
-        }
-      } catch {
-        console.error('Ошибка! Учетные записи сохраненные локально имеют направильный формат!')
+export const useAppStore = defineStore('app', () => {
+  const accounts = ref<Account[]>([])
+  const lastId = ref(0)
+
+  const init = () => {
+    const savedAccounts = localStorage.getItem('accounts')
+    const savedLastId = Number(localStorage.getItem('lastId')) || 0
+    try {
+      if (savedAccounts) {
+        accounts.value = JSON.parse(savedAccounts)
+        lastId.value = savedLastId
       }
-    },
-    saveToLS () {
-      localStorage.setItem('accounts', JSON.stringify(this.accounts))
-      localStorage.setItem('lastId', this.lastId.toString())
-    },
-    addAccount () {
-      this.accounts.push({
-        id: this.lastId,
-        login: '',
-        tags: [],
-        type: 'local',
-        password: '',
-      })
-      this.lastId++
-    },
-    deleteAccount (id: number) {
-      this.accounts = this.accounts.filter(account => account.id !== id)
-    },
-    setField<K extends keyof Account> (id: number, field: K, value: Account[K]) {
-      const account = this.getById(id)
-      if (!account) {
-        return
-      }
-      account[field] = value
-    },
-    setTagsField (id: number, value: string) {
-      const tags: Tag[] = value.split(';').map(text => ({ text }))
-      this.setField(id, 'tags', tags)
-    },
-  },
-  getters: {
-    getById (state) {
-      return (id: number) => state.accounts.find(account => account.id === id)
-    },
-    getTagsAsString () {
-      return (id: number) => this.getById(id)?.tags.map(({ text }) => text).join(';')
-    },
-  },
+    } catch {
+      console.error('Ошибка! Учетные записи сохраненные локально имеют направильный формат!')
+    }
+  }
+
+  const saveToLS = () => {
+    localStorage.setItem('accounts', JSON.stringify(accounts.value))
+    localStorage.setItem('lastId', lastId.value.toString())
+  }
+
+  const incrementLastId = () => {
+    lastId.value++
+  }
+  const saveAccount = (data: Account) => {
+    console.log(data)
+
+    const existingAccountIndex = accounts.value.findIndex(account => account.id === data.id)
+    if (existingAccountIndex === -1) {
+      accounts.value.push(data)
+    } else {
+      accounts.value[existingAccountIndex] = data
+    }
+  }
+
+  const deleteAccount = (id: number) => {
+    accounts.value = accounts.value.filter(account => account.id !== id)
+  }
+
+  return { init, saveAccount, saveToLS, incrementLastId, deleteAccount, accounts, lastId }
 })

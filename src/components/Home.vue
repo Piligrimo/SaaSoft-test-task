@@ -3,7 +3,7 @@
     <v-container class="container fill-height" max-width="900">
       <h1 class="text-h4 font-weight-bold my-4">
         <span class="mr-4">Учетные записи</span>
-        <v-btn icon="mdi-plus" rounded="lg" variant="outlined" @click="store.addAccount" />
+        <v-btn icon="mdi-plus" rounded="lg" variant="outlined" @click="addAccount" />
       </h1>
 
       <v-row>
@@ -28,49 +28,54 @@
       </v-row>
       <template v-else>
         <v-row v-for="account in accounts" :key="account.id">
-          <v-col cols="3">
-            <v-text-field
-              density="compact"
-              label="Метки"
-              :model-value="store.getTagsAsString(account.id)"
-              :rules="[rules.max50]"
-              validate-on="blur"
-              @update:model-value="store.setTagsField(account.id, $event)"
-            />
-          </v-col>
-          <v-col cols="2">
-            <v-select
-              density="compact"
-              :items="types"
-              label="Тип записи"
-              :model-value="account.type"
-              @update:model-value="store.setField(account.id, 'type', $event)"
-            />
-          </v-col>
-          <v-col :cols="account.type === 'local' ? 3 : 6">
-            <v-text-field
-              density="compact"
-              label="Логин"
-              :model-value="account.login"
-              :rules="[rules.required, rules.max100]"
-              validate-on="blur"
-              @update:model-value="store.setField(account.id, 'login', $event)"
-            />
-          </v-col>
-          <v-col v-if="account.type === 'local'" cols="3">
-            <v-text-field
-              density="compact"
-              label="Пароль"
-              :model-value="account.password"
-              :rules="[rules.required, rules.max100]"
-              type="password"
-              validate-on="blur"
-              @update:model-value="store.setField(account.id, 'password', $event)"
-            />
-          </v-col>
-          <v-col cols="1">
-            <v-btn icon="mdi-trash-can" rounded="lg" variant="plain" @click="store.deleteAccount(account.id)" />
-          </v-col>
+          <v-form
+            :ref="(el) => formRefs[account.id] = el"
+            class="form"
+            @update:model-value="saveIfValid(account, $event)"
+          >
+            <v-col cols="3">
+              <v-text-field
+                density="compact"
+                label="Метки"
+                :model-value="getTagsAsString(account.tags)"
+                :rules="[rules.max50]"
+                validate-on="blur"
+                @update:model-value="setTagsField(account.id, $event)"
+              />
+            </v-col>
+            <v-col cols="2">
+              <v-select
+                density="compact"
+                :items="types"
+                label="Тип записи"
+                :model-value="account.type"
+                @update:model-value="setField(account.id, 'type', $event)"
+              />
+            </v-col>
+            <v-col :cols="account.type === 'local' ? 3 : 6">
+              <v-text-field
+                v-model="account.login"
+                density="compact"
+                label="Логин"
+                :rules="[rules.required, rules.max100]"
+                validate-on="blur"
+              />
+            </v-col>
+            <v-col v-if="account.type === 'local'" cols="3">
+              <v-text-field
+                density="compact"
+                label="Пароль"
+                :model-value="account.password"
+                :rules="[rules.required, rules.max100]"
+                type="password"
+                validate-on="blur"
+                @update:model-value="setField(account.id, 'password', $event)"
+              />
+            </v-col>
+            <v-col cols="1">
+              <v-btn icon="mdi-trash-can" rounded="lg" variant="plain" @click="deleteAccount(account.id)" />
+            </v-col>
+          </v-form>
         </v-row>
       </template>
     </v-container>
@@ -78,9 +83,25 @@
 </template>
 
 <script setup lang="ts">
-  import { useAppStore } from '@/stores/app'
+  import { type Account, type Tag, useAppStore } from '@/stores/app'
 
   const store = useAppStore()
+
+  const formRefs = reactive<Record<number, any>>({})
+  store.init()
+
+  const accounts = ref([...store.accounts])
+
+  const addAccount = () => {
+    accounts.value.push({
+      id: store.lastId,
+      login: '',
+      tags: [],
+      type: 'local',
+      password: '',
+    })
+    store.incrementLastId()
+  }
 
   const createMaxRule = (max: number) => {
     return (val: string) => val.length <= max || `Введите ${max} или меньше символов`
@@ -91,8 +112,6 @@
     max100: createMaxRule(100),
     max50: createMaxRule(50),
   }
-
-  store.init()
 
   addEventListener('unload', () => {
     store.saveToLS()
@@ -109,11 +128,39 @@
     },
   ]
 
-  const accounts = computed(() => store.accounts)
+  const getTagsAsString = (tags: Tag[]) =>
+    tags.map(({ text }) => text).join(';')
+
+  const setTagsField = (id: number, value: string) => {
+    const tags: Tag[] = value.split(';').map(text => ({ text }))
+    setField(id, 'tags', tags)
+  }
+
+  const setField = <K extends keyof Account>(id: number, field: K, value: Account[K]) => {
+    const account = accounts.value.find(account => account.id === id)
+    if (!account) return
+    account[field] = value
+  }
+
+  const saveIfValid = (account: Account, isValid: boolean | null) => {
+    console.log('saveIfValid', { isValid })
+    if (isValid) {
+      store.saveAccount(account)
+    }
+  }
+
+  const deleteAccount = (id: number) => {
+    accounts.value = accounts.value.filter(account => account.id !== id)
+    store.deleteAccount(id)
+  }
 </script>
 
 <style scoped>
   .container {
     display: block !important;
+  }
+  .form {
+    display: flex;
+    width: 100%;
   }
 </style>
