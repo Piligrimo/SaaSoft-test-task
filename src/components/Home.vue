@@ -33,6 +33,8 @@
               density="compact"
               label="Метки"
               :model-value="store.getTagsAsString(account.id)"
+              :rules="[rules.max50]"
+              validate-on="blur"
               @update:model-value="store.setTagsField(account.id, $event)"
             />
           </v-col>
@@ -50,6 +52,8 @@
               density="compact"
               label="Логин"
               :model-value="account.login"
+              :rules="[rules.required, rules.max100]"
+              validate-on="blur"
               @update:model-value="store.setField(account.id, 'login', $event)"
             />
           </v-col>
@@ -58,7 +62,9 @@
               density="compact"
               label="Пароль"
               :model-value="account.password"
+              :rules="[rules.required, rules.max100]"
               type="password"
+              validate-on="blur"
               @update:model-value="store.setField(account.id, 'password', $event)"
             />
           </v-col>
@@ -76,11 +82,19 @@
 
   const store = useAppStore()
 
+  const createMaxRule = (max: number) => {
+    return (val: string) => val.length <= max || `Введите ${max} или меньше символов`
+  }
+
+  const rules = {
+    required: (val: string) => !!val || 'Обязательное поле',
+    max100: createMaxRule(100),
+    max50: createMaxRule(50),
+  }
+
   store.init()
 
   addEventListener('unload', () => {
-    console.log('ssssss')
-
     store.saveToLS()
   })
 
